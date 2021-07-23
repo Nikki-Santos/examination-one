@@ -1,0 +1,58 @@
+1. Write a query to display the ff columns ID (shouldstartwith T + 11 digits of trn_teacher.id with leading zeroslike'T00000088424'), Nickname, Status and Roles (like Trainer/Assessor/Staff) using table trn_teacher and trn_teacher_role.
+
+
+SELECT 
+    INSERT(employee.id, 1, 0, 'T') AS ID,
+    Nickname,
+    Status,
+    role.employee_role AS Role
+FROM
+    (SELECT 
+        LPAD(id, 11, '0') AS id,
+            nickname AS Nickname,
+            status AS Status
+    FROM
+        trn_teacher) AS employee
+        LEFT JOIN
+    (SELECT 
+        teacher_id,
+            CASE
+                WHEN role = 1 THEN 'Trainer'
+                WHEN role = 2 THEN 'Assessor'
+                ELSE 'Staff'
+            END AS employee_role
+    FROM
+        trn_teacher_role) AS role ON employee.id = role.teacher_id;
+
+
+2. Write a query to display the ff columns ID (from teacher.id),Nickname, Open (total open slots from trn_teacher_time_table),Reserved (total reserved slots from trn_teacher_time_table),Taught (total taught from trn_evaluation) and NoShow (totalno_show from trn_evaluation) using all tables above. Shouldshow only those who are active (trn_teacher.status = 1or2)and those who have both Trainer and Assessor role. 
+
+
+SELECT 
+    id AS ID, nickname AS Nickname, status AS 'Open', Taught, noshow as 'No Show'
+FROM
+    trn_teacher AS teacher
+        LEFT JOIN
+    (SELECT 
+        teacher_id, SUM(status)
+    FROM
+        trn_time_table
+    WHERE
+        status = 1
+    GROUP BY teacher_id) AS time_table ON time_table.teacher_id = teacher.id
+        LEFT JOIN
+    (SELECT 
+        teacher_id,
+            SUM(CASE
+                WHEN result = 1 THEN result
+                ELSE 0
+            END) AS Taught,
+            SUM(CASE
+                WHEN result = 2 THEN 1
+                ELSE 0
+            END) AS 'noshow'
+    FROM
+        trn_evaluation
+    GROUP BY teacher_id) AS evaluation ON evaluation.teacher_id = teacher.id
+WHERE
+    status > 0;
